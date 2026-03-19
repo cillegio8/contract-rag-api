@@ -1,0 +1,43 @@
+# Contract RAG API - Docker Compose
+# ==================================
+
+version: '3.8'
+
+services:
+  contract-rag-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: contract-rag-api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DEBUG=false
+      - MAX_FILES=5
+      - CHUNK_SIZE=1000
+      - CHUNK_OVERLAP=200
+      - EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+      - VECTOR_STORE_TYPE=faiss
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - contract_uploads:/tmp/contract_rag/uploads
+      - contract_chunks:/tmp/contract_rag/chunks
+      # Cache for embedding model
+      - model_cache:/root/.cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  contract_uploads:
+  contract_chunks:
+  model_cache:
