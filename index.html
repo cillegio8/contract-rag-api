@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Müqavilə Analizi | Contract Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0b;
+            --bg-secondary: #111113;
+            --bg-tertiary: #1a1a1d;
+            --bg-hover: #222226;
+            --border: #2a2a2e;
+            --border-focus: #3d3d42;
+            --text-primary: #fafafa;
+            --text-secondary: #a0a0a5;
+            --text-muted: #6b6b70;
+            --accent: #00d4aa;
+            --accent-dim: #00d4aa20;
+            --accent-glow: #00d4aa40;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --success: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            padding: 2rem 0 3rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent), #00a885);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            min-height: calc(100vh - 250px);
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: border-color 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--border-focus);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent-dim);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-tertiary);
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .upload-zone.has-files {
+            border-style: solid;
+            border-color: var(--success);
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+        }
+
+        .upload-text {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* File List */
+        .file-list {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .file-name {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .file-size {
+            color: var(--text-muted);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .remove-file {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            font-size: 1.2rem;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .remove-file:hover {
+            color: var(--error);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #00e8bb;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Question Input */
+        .question-section {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Language Selector */
+        .language-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .lang-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .lang-btn:hover:not(.active) {
+            border-color: var(--border-focus);
+        }
+
+        /* Example Questions */
+        .examples-section {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .examples-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .example-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .example-chip {
+            padding: 0.5rem 0.875rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Results Section */
+        .results-section {
+            grid-column: 1 / -1;
+            margin-top: 1rem;
+        }
+
+        .answer-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .answer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .confidence-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.75rem;
+            background: var(--accent-dim);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .answer-content {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+        }
+
+        /* Sources */
+        .sources-section {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .sources-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .source-item {
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .source-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .source-file {
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        .source-score {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .source-text {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        /* Status Messages */
+        .status {
+            padding: 1rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .status.loading {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .status.error {
+            background: #ef444420;
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .status.success {
+            background: #10b98120;
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Session Info */
+        .session-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 1rem;
+        }
+
+        .session-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">📄</div>
+                <div>
+                    <h1>Müqavilə Analizi</h1>
+                    <p class="subtitle">AI-powered Contract Analysis • RAG System</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-grid">
+            <!-- Upload Section -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📁</div>
+                    <span class="card-title">Sənəd Yükləyin</span>
+                </div>
+                
+                <div class="upload-zone" id="upload-zone">
+                    <div class="upload-icon">⬆️</div>
+                    <p class="upload-text">Faylları buraya sürükləyin və ya klikləyin</p>
+                    <p class="upload-hint">PDF, DOCX, TXT • Maksimum 5 fayl</p>
+                    <input type="file" id="file-input" multiple accept=".pdf,.docx,.txt">
+                </div>
+
+                <div class="file-list" id="file-list"></div>
+
+                <button class="btn btn-primary" id="upload-btn" disabled>
+                    <span>Yüklə və Analiz Et</span>
+                </button>
+
+                <div id="upload-status"></div>
+                <div class="session-info" id="session-info" style="display: none;">
+                    <div class="session-dot"></div>
+                    <span id="session-id"></span>
+                </div>
+            </div>
+
+            <!-- Question Section -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">💬</div>
+                    <span class="card-title">Sual Verin</span>
+                </div>
+
+                <div class="question-section">
+                    <div class="language-selector">
+                        <button class="lang-btn active" data-lang="az">🇦🇿 Azərbaycan</button>
+                        <button class="lang-btn" data-lang="ru">🇷🇺 Русский</button>
+                        <button class="lang-btn" data-lang="en">🇬🇧 English</button>
+                    </div>
+
+                    <div class="input-group">
+                        <textarea 
+                            id="question-input" 
+                            placeholder="Müqavilə haqqında sualınızı yazın..."
+                            disabled
+                        ></textarea>
+                    </div>
+
+                    <button class="btn btn-primary" id="ask-btn" disabled>
+                        <span>Sual Ver</span>
+                    </button>
+
+                    <div class="examples-section">
+                        <p class="examples-label">Nümunə suallar:</p>
+                        <div class="example-chips" id="example-chips">
+                            <span class="example-chip">Müqavilənin müddəti nədir?</span>
+                            <span class="example-chip">Ödəniş şərtləri hansılardır?</span>
+                            <span class="example-chip">Cərimələr nəzərdə tutulub?</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="results-section" style="display: none;"></div>
+        </main>
+
+        <footer>
+            Contract RAG API • Ephemeral Analysis System
+        </footer>
+    </div>
+
+    <script>
+        // Configuration
+        const API_URL = 'https://p01--contract-rag-api--vzymlrwjx6c5.code.run';
+        
+        // State
+        let files = [];
+        let sessionId = null;
+        let currentLang = 'az';
+
+        // Example questions by language
+        const examples = {
+            az: [
+                "Müqavilənin müddəti nədir?",
+                "Ödəniş şərtləri hansılardır?",
+                "Cərimələr nəzərdə tutulub?",
+                "Təchizatçı kimdir?",
+                "Ümumi məbləğ nə qədərdir?"
+            ],
+            ru: [
+                "Какой срок действия контракта?",
+                "Какие условия оплаты?",
+                "Есть ли штрафы?",
+                "Кто поставщик?",
+                "Какова общая сумма?"
+            ],
+            en: [
+                "What is the contract duration?",
+                "What are the payment terms?",
+                "Are there any penalties?",
+                "Who is the supplier?",
+                "What is the total amount?"
+            ]
+        };
+
+        const placeholders = {
+            az: "Müqavilə haqqında sualınızı yazın...",
+            ru: "Напишите ваш вопрос о контракте...",
+            en: "Write your question about the contract..."
+        };
+
+        // Elements
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileList = document.getElementById('file-list');
+        const uploadBtn = document.getElementById('upload-btn');
+        const uploadStatus = document.getElementById('upload-status');
+        const sessionInfo = document.getElementById('session-info');
+        const sessionIdEl = document.getElementById('session-id');
+        const questionInput = document.getElementById('question-input');
+        const askBtn = document.getElementById('ask-btn');
+        const resultsSection = document.getElementById('results-section');
+        const exampleChips = document.getElementById('example-chips');
+        const langBtns = document.querySelectorAll('.lang-btn');
+
+        // File Upload Handling
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', () => {
+            handleFiles(fileInput.files);
+        });
+
+        function handleFiles(newFiles) {
+            const validFiles = Array.from(newFiles).filter(f => 
+                f.name.match(/\.(pdf|docx|txt)$/i)
+            );
+            
+            files = [...files, ...validFiles].slice(0, 5);
+            renderFileList();
+            uploadBtn.disabled = files.length === 0;
+            
+            if (files.length > 0) {
+                uploadZone.classList.add('has-files');
+            }
+        }
+
+        function renderFileList() {
+            fileList.innerHTML = files.map((f, i) => `
+                <div class="file-item">
+                    <span class="file-name">
+                        📄 ${f.name}
+                    </span>
+                    <span class="file-size">${formatSize(f.size)}</span>
+                    <button class="remove-file" onclick="removeFile(${i})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            files.splice(index, 1);
+            renderFileList();
+            uploadBtn.disabled = files.length === 0;
+            if (files.length === 0) {
+                uploadZone.classList.remove('has-files');
+            }
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Upload
+        uploadBtn.addEventListener('click', async () => {
+            if (files.length === 0) return;
+
+            uploadBtn.disabled = true;
+            uploadStatus.innerHTML = `
+                <div class="status loading">
+                    <div class="spinner"></div>
+                    <span>Sənədlər yüklənir və analiz edilir...</span>
+                </div>
+            `;
+
+            const formData = new FormData();
+            files.forEach(f => formData.append('files', f));
+
+            try {
+                const res = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error('Upload failed');
+
+                const data = await res.json();
+                sessionId = data.session_id;
+
+                uploadStatus.innerHTML = `
+                    <div class="status success">
+                        ✓ ${data.files_processed} fayl yükləndi, ${data.total_chunks} chunk yaradıldı
+                    </div>
+                `;
+
+                sessionInfo.style.display = 'flex';
+                sessionIdEl.textContent = `Session: ${sessionId.slice(0, 8)}...`;
+
+                questionInput.disabled = false;
+                askBtn.disabled = false;
+                questionInput.focus();
+
+            } catch (err) {
+                uploadStatus.innerHTML = `
+                    <div class="status error">
+                        ✗ Xəta baş verdi: ${err.message}
+                    </div>
+                `;
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // Language Selection
+        langBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                langBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLang = btn.dataset.lang;
+                questionInput.placeholder = placeholders[currentLang];
+                updateExamples();
+            });
+        });
+
+        function updateExamples() {
+            exampleChips.innerHTML = examples[currentLang].map(q => 
+                `<span class="example-chip">${q}</span>`
+            ).join('');
+            
+            document.querySelectorAll('.example-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    questionInput.value = chip.textContent;
+                    if (sessionId) askBtn.disabled = false;
+                });
+            });
+        }
+
+        // Initialize examples click handlers
+        document.querySelectorAll('.example-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                questionInput.value = chip.textContent;
+                if (sessionId) askBtn.disabled = false;
+            });
+        });
+
+        // Ask Question
+        askBtn.addEventListener('click', askQuestion);
+        questionInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) askQuestion();
+        });
+
+        async function askQuestion() {
+            const question = questionInput.value.trim();
+            if (!question || !sessionId) return;
+
+            askBtn.disabled = true;
+            resultsSection.style.display = 'block';
+            resultsSection.innerHTML = `
+                <div class="answer-card">
+                    <div class="status loading">
+                        <div class="spinner"></div>
+                        <span>Cavab axtarılır...</span>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`${API_URL}/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        question: question,
+                        language: currentLang,
+                        top_k: 5
+                    })
+                });
+
+                if (!res.ok) throw new Error('Question failed');
+
+                const data = await res.json();
+                renderAnswer(data);
+
+            } catch (err) {
+                resultsSection.innerHTML = `
+                    <div class="answer-card">
+                        <div class="status error">
+                            ✗ Xəta baş verdi: ${err.message}
+                        </div>
+                    </div>
+                `;
+            }
+
+            askBtn.disabled = false;
+        }
+
+        function renderAnswer(data) {
+            const confidencePercent = Math.round(data.confidence * 100);
+            
+            resultsSection.innerHTML = `
+                <div class="answer-card">
+                    <div class="answer-header">
+                        <span style="color: var(--text-secondary)">Cavab</span>
+                        <div class="confidence-badge">
+                            📊 ${confidencePercent}% confidence
+                        </div>
+                    </div>
+                    <div class="answer-content">${escapeHtml(data.answer)}</div>
+                    
+                    ${data.sources && data.sources.length > 0 ? `
+                        <div class="sources-section">
+                            <p class="sources-title">📎 Mənbələr (${data.sources.length})</p>
+                            ${data.sources.map(s => `
+                                <div class="source-item">
+                                    <div class="source-meta">
+                                        <span class="source-file">${s.source_file}</span>
+                                        <span class="source-score">Chunk #${s.chunk_index + 1} • ${Math.round(s.relevance_score * 100)}% match</span>
+                                    </div>
+                                    <div class="source-text">${escapeHtml(s.chunk_text.slice(0, 300))}${s.chunk_text.length > 300 ? '...' : ''}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
