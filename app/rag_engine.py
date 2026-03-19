@@ -189,6 +189,18 @@ ANSWER:"""
                 print(f"⚠️ Failed to initialize Anthropic: {e}")
                 self._llm_client = "mock"
         
+        elif settings.LLM_PROVIDER == "openrouter":
+            try:
+                from openai import OpenAI
+                self._llm_client = OpenAI(
+                    api_key=settings.OPENROUTER_API_KEY,
+                    base_url="https://openrouter.ai/api/v1",
+                )
+                print(f"✅ Initialized OpenRouter LLM: {settings.OPENROUTER_MODEL}")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize OpenRouter: {e}")
+                self._llm_client = "mock"
+        
         else:
             self._llm_client = "mock"
     
@@ -380,6 +392,18 @@ ANSWER:"""
                     ],
                 )
                 return response.content[0].text.strip()
+            
+            elif settings.LLM_PROVIDER == "openrouter":
+                response = self._llm_client.chat.completions.create(
+                    model=settings.OPENROUTER_MODEL,
+                    messages=[
+                        {"role": "system", "content": "You are a contract analysis expert. You can respond in Azerbaijani, Russian, and English."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    max_tokens=settings.LLM_MAX_TOKENS,
+                    temperature=settings.LLM_TEMPERATURE,
+                )
+                return response.choices[0].message.content.strip()
         
         except Exception as e:
             print(f"LLM generation error: {e}")
@@ -397,21 +421,21 @@ ANSWER:"""
             "az": (
                 f"Yüklənmiş sənədlərin təhlili əsasında:\n\n"
                 f"Sənəd kontekstində uyğun məlumat tapıldı. "
-                f"Dəqiq cavab almaq üçün LLM provayderi (OpenAI və ya Anthropic) "
+                f"Dəqiq cavab almaq üçün LLM provayderi (OpenAI, Anthropic və ya OpenRouter) "
                 f"mühit dəyişənlərində konfiqurasiya edin.\n\n"
                 f"Kontekst önizləməsi: {context_preview}..."
             ),
             "ru": (
                 f"На основе анализа загруженных документов:\n\n"
                 f"Найдена релевантная информация в контексте документов. "
-                f"Для получения точного ответа настройте LLM провайдер (OpenAI или Anthropic) "
+                f"Для получения точного ответа настройте LLM провайдер (OpenAI, Anthropic или OpenRouter) "
                 f"в переменных окружения.\n\n"
                 f"Предварительный контекст: {context_preview}..."
             ),
             "en": (
                 f"Based on the analysis of uploaded documents:\n\n"
                 f"Relevant information was found in the document context. "
-                f"For accurate answers, please configure an LLM provider (OpenAI or Anthropic) "
+                f"For accurate answers, please configure an LLM provider (OpenAI, Anthropic, or OpenRouter) "
                 f"in environment variables.\n\n"
                 f"Context preview: {context_preview}..."
             ),

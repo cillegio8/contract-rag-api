@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     MAX_QUESTION_LENGTH: int = 1000
     
     # LLM Settings (for answer generation)
-    LLM_PROVIDER: str = "openai"  # "openai", "anthropic", "local"
+    LLM_PROVIDER: str = "openrouter"  # "openai", "anthropic", "openrouter", "local"
     LLM_MODEL: str = "gpt-4o-mini"
     LLM_API_KEY: str = ""
     LLM_MAX_TOKENS: int = 1000
@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     # Alternative: Anthropic
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
+    
+    # OpenRouter Configuration
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "openai/gpt-4o-mini"  # OpenRouter model identifier
     
     # CORS Settings
     CORS_ORIGINS: List[str] = ["*"]
