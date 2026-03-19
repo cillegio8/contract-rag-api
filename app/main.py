@@ -21,9 +21,12 @@ import hashlib
 from datetime import datetime
 from typing import Optional, List
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from app.config import settings
@@ -72,6 +75,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve frontend
+FRONTEND_DIR = Path(__file__).parent.parent
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend():
+    """Serve the frontend HTML."""
+    index_path = FRONTEND_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return {"message": "Contract RAG API is running", "docs": "/docs"}
 
 
 # Dependency injection
