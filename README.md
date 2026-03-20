@@ -1,3 +1,5 @@
+[![Architecture](https://img.shields.io/badge/docs-architecture-blue)](ARCHITECTURE.md)
+
 # Contract RAG API 📄
 
 A backend API + web frontend for contract document analysis using RAG (Retrieval-Augmented Generation). Upload contracts, ask questions in Azerbaijani, Russian, or English, and get precise answers with source citations.
