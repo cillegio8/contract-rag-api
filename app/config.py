@@ -30,8 +30,11 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 200  # characters
     
     # Embedding Settings
-    EMBEDDING_MODEL: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    EMBEDDING_DIMENSION: int = 384  # depends on model
+    EMBEDDING_PROVIDER: str = "openrouter"  # "openai", "openrouter", or "sentence-transformers"
+    EMBEDDING_MODEL: str = "qwen/qwen3-embedding-8b"  # OpenRouter Qwen embedding model
+    EMBEDDING_DIMENSION: int = 768  # 768 for Qwen embeddings, 1536 for text-embedding-3-small, 384 for MiniLM-L12-v2
+    OPENAI_EMBEDDINGS_API_KEY: str = ""  # Set if different from LLM_API_KEY (for OpenAI provider)
+    OPENROUTER_EMBEDDINGS_API_KEY: str = ""  # OpenRouter API key for embeddings (can be same as OPENROUTER_API_KEY)
     
     # Vector Store Settings
     VECTOR_STORE_TYPE: str = "faiss"  # "faiss" or "chromadb"

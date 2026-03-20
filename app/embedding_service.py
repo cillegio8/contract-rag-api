@@ -2,9 +2,9 @@
 Embedding Service - Generate embeddings for document chunks.
 
 Supports multiple embedding providers:
-- Sentence Transformers (local, multilingual)
+- OpenRouter (Qwen embeddings)
 - OpenAI Embeddings
-- Custom embedding endpoint
+- Sentence Transformers (local, multilingual)
 """
 
 from typing import List, Optional
@@ -18,7 +18,8 @@ class EmbeddingService:
     """
     Service for generating text embeddings.
     
-    Default: Uses sentence-transformers for multilingual support (Russian + English).
+    Default: Uses OpenRouter Qwen embeddings (qwen/qwen3-embedding-8b).
+    Alternatives: OpenAI embeddings or local sentence-transformers.
     """
     
     def __init__(self, model_name: Optional[str] = None):
@@ -29,12 +30,45 @@ class EmbeddingService:
             model_name: Override model name from settings
         """
         self.model_name = model_name or settings.EMBEDDING_MODEL
+        self.provider = settings.EMBEDDING_PROVIDER
         self.dimension = settings.EMBEDDING_DIMENSION
         self._model = None
-        self._tokenizer = None
+        self._openrouter_client = None
+        self._openai_client = None
+    
+    def _init_openrouter(self):
+        """Initialize OpenRouter client for embeddings."""
+        if self._openrouter_client is not None:
+            return
+        
+        try:
+            from openai import OpenAI
+            api_key = settings.OPENROUTER_EMBEDDINGS_API_KEY or settings.OPENROUTER_API_KEY
+            self._openrouter_client = OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1",
+            )
+            print(f"✅ Initialized OpenRouter embeddings: {self.model_name} (dim={self.dimension})")
+        except Exception as e:
+            print(f"⚠️ Failed to initialize OpenRouter embeddings: {e}")
+            self._openrouter_client = None
+    
+    def _init_openai(self):
+        """Initialize OpenAI client for embeddings."""
+        if self._openai_client is not None:
+            return
+        
+        try:
+            from openai import OpenAI
+            api_key = settings.OPENAI_EMBEDDINGS_API_KEY or settings.LLM_API_KEY
+            self._openai_client = OpenAI(api_key=api_key)
+            print(f"✅ Initialized OpenAI embeddings: {self.model_name} (dim={self.dimension})")
+        except Exception as e:
+            print(f"⚠️ Failed to initialize OpenAI embeddings: {e}")
+            self._openai_client = None
     
     def _load_model(self):
-        """Lazy load the embedding model."""
+        """Lazy load the embedding model (sentence-transformers)."""
         if self._model is not None:
             return
         
@@ -60,13 +94,41 @@ class EmbeddingService:
         Returns:
             Embedding vector as list of floats
         """
-        self._load_model()
-        
-        if self._model == "mock":
-            return self._mock_embedding(text)
-        
-        embedding = self._model.encode(text, normalize_embeddings=True)
-        return embedding.tolist()
+        if self.provider == "openrouter":
+            self._init_openrouter()
+            if self._openrouter_client:
+                try:
+                    response = self._openrouter_client.embeddings.create(
+                        model=self.model_name,
+                        input=text
+                    )
+                    return response.data[0].embedding
+                except Exception as e:
+                    print(f"⚠️ OpenRouter embedding error: {e}, fallback to mock")
+                    return self._mock_embedding(text)
+            else:
+                return self._mock_embedding(text)
+        elif self.provider == "openai":
+            self._init_openai()
+            if self._openai_client:
+                try:
+                    response = self._openai_client.embeddings.create(
+                        model=self.model_name,
+                        input=text
+                    )
+                    return response.data[0].embedding
+                except Exception as e:
+                    print(f"⚠️ OpenAI embedding error: {e}, fallback to mock")
+                    return self._mock_embedding(text)
+            else:
+                return self._mock_embedding(text)
+        else:
+            # Use sentence-transformers
+            self._load_model()
+            if self._model == "mock":
+                return self._mock_embedding(text)
+            embedding = self._model.encode(text, normalize_embeddings=True)
+            return embedding.tolist()
     
     def embed_texts(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
         """
@@ -79,18 +141,52 @@ class EmbeddingService:
         Returns:
             List of embedding vectors
         """
-        self._load_model()
-        
-        if self._model == "mock":
-            return [self._mock_embedding(text) for text in texts]
-        
-        embeddings = self._model.encode(
-            texts,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            show_progress_bar=len(texts) > 100
-        )
-        return embeddings.tolist()
+        if self.provider == "openrouter":
+            self._init_openrouter()
+            if self._openrouter_client:
+                try:
+                    # OpenRouter API can handle multiple texts in one call
+                    response = self._openrouter_client.embeddings.create(
+                        model=self.model_name,
+                        input=texts
+                    )
+                    # Sort by index to maintain order
+                    embeddings_dict = {item.index: item.embedding for item in response.data}
+                    return [embeddings_dict[i] for i in range(len(texts))]
+                except Exception as e:
+                    print(f"⚠️ OpenRouter embedding error: {e}, fallback to mock")
+                    return [self._mock_embedding(text) for text in texts]
+            else:
+                return [self._mock_embedding(text) for text in texts]
+        elif self.provider == "openai":
+            self._init_openai()
+            if self._openai_client:
+                try:
+                    # OpenAI API can handle multiple texts in one call
+                    response = self._openai_client.embeddings.create(
+                        model=self.model_name,
+                        input=texts
+                    )
+                    # Sort by index to maintain order
+                    embeddings_dict = {item.index: item.embedding for item in response.data}
+                    return [embeddings_dict[i] for i in range(len(texts))]
+                except Exception as e:
+                    print(f"⚠️ OpenAI embedding error: {e}, fallback to mock")
+                    return [self._mock_embedding(text) for text in texts]
+            else:
+                return [self._mock_embedding(text) for text in texts]
+        else:
+            # Use sentence-transformers
+            self._load_model()
+            if self._model == "mock":
+                return [self._mock_embedding(text) for text in texts]
+            embeddings = self._model.encode(
+                texts,
+                batch_size=batch_size,
+                normalize_embeddings=True,
+                show_progress_bar=len(texts) > 100
+            )
+            return embeddings.tolist()
     
     def embed_chunks(self, chunks: List[DocumentChunk]) -> List[DocumentChunk]:
         """
