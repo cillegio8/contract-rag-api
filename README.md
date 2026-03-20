@@ -1,4 +1,3 @@
-[Architecture](ARCHITECTURE.md)
 [![Architecture](https://img.shields.io/badge/docs-architecture-blue)](ARCHITECTURE.md)
 
 # Contract RAG API 📄
