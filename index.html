@@ -9,21 +9,21 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0a0a0b;
-            --bg-secondary: #111113;
-            --bg-tertiary: #1a1a1d;
-            --bg-hover: #222226;
-            --border: #2a2a2e;
-            --border-focus: #3d3d42;
-            --text-primary: #fafafa;
-            --text-secondary: #a0a0a5;
-            --text-muted: #6b6b70;
-            --accent: #00d4aa;
-            --accent-dim: #00d4aa20;
-            --accent-glow: #00d4aa40;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafb;
+            --bg-tertiary: #f0f4f5;
+            --bg-hover: #e6f2f1;
+            --border: #d1e0de;
+            --border-focus: #00a896;
+            --text-primary: #0f2b2a;
+            --text-secondary: #3d6360;
+            --text-muted: #7da5a2;
+            --accent: #00a896;
+            --accent-dim: #00a89615;
+            --accent-glow: #00a89630;
             --warning: #f59e0b;
-            --error: #ef4444;
-            --success: #10b981;
+            --error: #dc2626;
+            --success: #059669;
         }
 
         * {
@@ -52,7 +52,7 @@
                 linear-gradient(var(--border) 1px, transparent 1px),
                 linear-gradient(90deg, var(--border) 1px, transparent 1px);
             background-size: 60px 60px;
-            opacity: 0.3;
+            opacity: 0.15;
             pointer-events: none;
             z-index: -1;
         }
@@ -265,7 +265,7 @@
         }
 
         .btn-primary:hover:not(:disabled) {
-            background: #00e8bb;
+            background: #00bfad;
             box-shadow: 0 0 20px var(--accent-glow);
         }
 
@@ -481,13 +481,13 @@
         }
 
         .status.error {
-            background: #ef444420;
+            background: #dc262615;
             color: var(--error);
             border: 1px solid var(--error);
         }
 
         .status.success {
-            background: #10b98120;
+            background: #05966915;
             color: var(--success);
             border: 1px solid var(--success);
         }
