@@ -624,8 +624,8 @@
     </div>
 
     <script>
-        // Configuration
-        const API_URL = 'https://p01--contract-rag-api--vzymlrwjx6c5.code.run';
+        // Configuration — use same origin so it works on any deployment URL
+        const API_URL = window.location.origin;
         
         // State
         let files = [];

@@ -90,6 +90,7 @@ async def serve_frontend():
 
 
 # Dependency injection
+
 def get_document_processor() -> DocumentProcessor:
     return DocumentProcessor()
 
@@ -110,17 +111,6 @@ def get_rag_engine(
 
 
 # ============== API Endpoints ==============
-
-
-@app.get("/", tags=["Health"])
-async def root():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "service": "Contract RAG API",
-        "version": "1.0.0",
-        "timestamp": datetime.utcnow().isoformat(),
-    }
 
 
 @app.get("/health", tags=["Health"])
