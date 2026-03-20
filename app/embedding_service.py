@@ -104,9 +104,13 @@ class EmbeddingService:
                     )
                     return response.data[0].embedding
                 except Exception as e:
-                    print(f"⚠️ OpenRouter embedding error: {e}, fallback to mock")
+                    print(f"❌ OpenRouter embedding error: {e}")
+                    print(f"   Model: {self.model_name}")
+                    print(f"   Text length: {len(text)}")
+                    print(f"   Fallback to mock embeddings")
                     return self._mock_embedding(text)
             else:
+                print(f"❌ OpenRouter client not initialized, using mock embeddings")
                 return self._mock_embedding(text)
         elif self.provider == "openai":
             self._init_openai()
@@ -118,9 +122,12 @@ class EmbeddingService:
                     )
                     return response.data[0].embedding
                 except Exception as e:
-                    print(f"⚠️ OpenAI embedding error: {e}, fallback to mock")
+                    print(f"❌ OpenAI embedding error: {e}")
+                    print(f"   Model: {self.model_name}")
+                    print(f"   Fallback to mock embeddings")
                     return self._mock_embedding(text)
             else:
+                print(f"❌ OpenAI client not initialized, using mock embeddings")
                 return self._mock_embedding(text)
         else:
             # Use sentence-transformers
@@ -133,14 +140,17 @@ class EmbeddingService:
     def embed_texts(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
         """
         Generate embeddings for multiple texts efficiently.
-        
+
         Args:
             texts: List of input texts
             batch_size: Batch size for processing
-            
+
         Returns:
             List of embedding vectors
         """
+        if not texts:
+            return []
+
         if self.provider == "openrouter":
             self._init_openrouter()
             if self._openrouter_client:
@@ -276,7 +286,15 @@ class EmbeddingService:
         
         query_vec = np.array(query_embedding)
         candidates = np.array(candidate_embeddings)
-        
+
+        # Normalize for cosine similarity
+        query_norm = np.linalg.norm(query_vec)
+        if query_norm > 0:
+            query_vec = query_vec / query_norm
+        candidate_norms = np.linalg.norm(candidates, axis=1, keepdims=True)
+        candidate_norms = np.where(candidate_norms > 0, candidate_norms, 1.0)
+        candidates = candidates / candidate_norms
+
         # Compute all similarities at once
         similarities = np.dot(candidates, query_vec)
         
@@ -297,11 +315,18 @@ class OpenAIEmbeddingService(EmbeddingService):
     Uses text-embedding-3-small by default.
     """
     
+    _DIMENSION_MAP = {
+        "text-embedding-3-small": 1536,
+        "text-embedding-3-large": 3072,
+        "text-embedding-ada-002": 1536,
+    }
+
     def __init__(self, api_key: Optional[str] = None, model: str = "text-embedding-3-small"):
         super().__init__()
+        self.provider = "openai"
         self.api_key = api_key or settings.LLM_API_KEY
         self.model_name = model
-        self.dimension = 1536  # Default for text-embedding-3-small
+        self.dimension = self._DIMENSION_MAP.get(model, 1536)
         self._client = None
     
     def _load_model(self):
@@ -329,8 +354,11 @@ class OpenAIEmbeddingService(EmbeddingService):
     
     def embed_texts(self, texts: List[str], batch_size: int = 100) -> List[List[float]]:
         """Generate embeddings for multiple texts."""
+        if not texts:
+            return []
+
         self._load_model()
-        
+
         all_embeddings = []
         
         for i in range(0, len(texts), batch_size):

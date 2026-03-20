@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # Embedding Settings
     EMBEDDING_PROVIDER: str = "openrouter"  # "openai", "openrouter", or "sentence-transformers"
     EMBEDDING_MODEL: str = "qwen/qwen3-embedding-8b"  # OpenRouter Qwen embedding model
-    EMBEDDING_DIMENSION: int = 768  # 768 for Qwen embeddings, 1536 for text-embedding-3-small, 384 for MiniLM-L12-v2
+    EMBEDDING_DIMENSION: int = 4096  # 4096 for qwen3-embedding-8b, 1536 for text-embedding-3-small, 384 for MiniLM-L12-v2
     OPENAI_EMBEDDINGS_API_KEY: str = ""  # Set if different from LLM_API_KEY (for OpenAI provider)
     OPENROUTER_EMBEDDINGS_API_KEY: str = ""  # OpenRouter API key for embeddings (can be same as OPENROUTER_API_KEY)
     
