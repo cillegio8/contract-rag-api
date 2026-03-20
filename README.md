@@ -193,7 +193,7 @@ Contracts-RAG/
 |----------|---------|-------------|
 | `EMBEDDING_PROVIDER` | `openrouter` | `openrouter` or `sentence-transformers` |
 | `EMBEDDING_MODEL` | `qwen/qwen3-embedding-8b` | Model for embeddings |
-| `EMBEDDING_DIMENSION` | `4096` | Vector dimension (4096 for Qwen3-8b, 384 for MiniLM) |
+| `EMBEDDING_DIMENSION` | `768` | Vector dimension (768 for Qwen3-8b via OpenRouter, 384 for MiniLM) |
 | `OPENROUTER_EMBEDDINGS_API_KEY` | — | OpenRouter key for embeddings |
 | `OPENROUTER_API_KEY` | — | OpenRouter key for LLM |
 | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | OpenRouter model identifier |
@@ -207,7 +207,7 @@ Contracts-RAG/
 
 | Provider | Model | Dimension | Notes |
 |----------|-------|-----------|-------|
-| OpenRouter | `qwen/qwen3-embedding-8b` | 4096 | Default, strong multilingual |
+| OpenRouter | `qwen/qwen3-embedding-8b` | 768 | Default, strong multilingual |
 | Local | `paraphrase-multilingual-MiniLM-L12-v2` | 384 | No API key needed |
 | Local | `paraphrase-multilingual-mpnet-base-v2` | 768 | Higher quality local option |
 
