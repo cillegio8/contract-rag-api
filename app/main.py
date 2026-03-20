@@ -55,6 +55,12 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting Contract RAG API...")
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     os.makedirs(settings.CHUNKS_DIR, exist_ok=True)
+    # Initialize shared service singletons
+    app.state.document_processor = DocumentProcessor()
+    app.state.embedding_service = EmbeddingService()
+    app.state.vector_store = VectorStore()
+    app.state.rag_engine = RAGEngine(app.state.embedding_service, app.state.vector_store)
+    print("✅ Services initialized")
     yield
     # Shutdown
     print("👋 Shutting down Contract RAG API...")
@@ -95,25 +101,25 @@ async def serve_frontend():
     return {"message": "index.html not found", "checked_paths": checked}
 
 
-# Dependency injection
-
-def get_document_processor() -> DocumentProcessor:
-    return DocumentProcessor()
-
-
-def get_embedding_service() -> EmbeddingService:
-    return EmbeddingService()
+# Dependency injection — return shared singletons so the vector store
+# is the same instance across upload and ask requests
+from fastapi import Request as _Request
 
 
-def get_vector_store() -> VectorStore:
-    return VectorStore()
+def get_document_processor(request: _Request) -> DocumentProcessor:
+    return request.app.state.document_processor
 
 
-def get_rag_engine(
-    embedding_service: EmbeddingService = Depends(get_embedding_service),
-    vector_store: VectorStore = Depends(get_vector_store),
-) -> RAGEngine:
-    return RAGEngine(embedding_service, vector_store)
+def get_embedding_service(request: _Request) -> EmbeddingService:
+    return request.app.state.embedding_service
+
+
+def get_vector_store(request: _Request) -> VectorStore:
+    return request.app.state.vector_store
+
+
+def get_rag_engine(request: _Request) -> RAGEngine:
+    return request.app.state.rag_engine
 
 
 # ============== API Endpoints ==============
