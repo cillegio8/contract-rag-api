@@ -1,15 +1,17 @@
-# Contract RAG API 📄🤖
+# Contract RAG API 📄
 
-A powerful backend API for contract document analysis using RAG (Retrieval-Augmented Generation).
+A backend API + web frontend for contract document analysis using RAG (Retrieval-Augmented Generation). Upload contracts, ask questions in Azerbaijani, Russian, or English, and get precise answers with source citations.
 
 ## Features
 
+- **Web Frontend**: Built-in UI served at `/` — white & teal design, no separate deployment needed
 - **Multi-file Upload**: Accept up to 5 contract files (PDF, DOCX, TXT)
 - **Intelligent Chunking**: Smart text splitting with overlap for better context
-- **Multilingual Support**: Works with **Azerbaijani**, Russian, and English contracts
-- **Auto Language Detection**: Automatically detects question language and responds accordingly
+- **Multilingual Support**: Azerbaijani, Russian, and English contracts and questions
+- **Auto Language Detection**: Detects question language and responds accordingly
 - **Semantic Search**: FAISS-powered vector similarity search
-- **LLM Integration**: OpenAI and Anthropic support for answer generation
+- **LLM Integration**: OpenRouter for answer generation
+- **Embeddings**: OpenRouter (Qwen3-embedding-8b, default) or local sentence-transformers
 - **Session Management**: Track multiple document analysis sessions
 
 ## Quick Start
@@ -17,65 +19,78 @@ A powerful backend API for contract document analysis using RAG (Retrieval-Augme
 ### 1. Installation
 
 ```bash
-# Clone the repository
-cd contract_rag_api
+git clone <repo>
+cd Contracts-RAG
 
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or: venv\Scripts\activate  # Windows
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Install dependencies
 pip install -r requirements.txt
 ```
 
 ### 2. Configuration
 
-```bash
-# Copy environment template
-cp .env.example .env
+Create a `.env` file:
 
-# Edit .env with your settings
-# Required: Set your LLM API key (OpenAI or Anthropic)
+```env
+# Embeddings (OpenRouter Qwen, default)
+EMBEDDING_PROVIDER=openrouter
+EMBEDDING_MODEL=qwen/qwen3-embedding-8b
+EMBEDDING_DIMENSION=4096
+OPENROUTER_EMBEDDINGS_API_KEY=your_key_here
+
+# LLM (OpenRouter)
+OPENROUTER_API_KEY=your_key_here
+OPENROUTER_MODEL=openai/gpt-4o-mini
 ```
 
-### 3. Run the API
+### 3. Run locally
 
 ```bash
-# Development mode
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Production mode
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-### 4. Using Docker
+Open http://localhost:8000 — the frontend loads automatically.
+
+### 4. Docker
 
 ```bash
-# Build and run
 docker-compose up -d
-
-# View logs
 docker-compose logs -f
 ```
 
+## Deployment (Northflank)
+
+The app is a single Docker service — the FastAPI backend serves the frontend at `/`.
+
+1. Connect your git repo to a Northflank service
+2. Set build to **Dockerfile** (repo root)
+3. Set port to **8000**
+4. Add environment variables (see Configuration above)
+5. Push to git → Northflank auto-rebuilds
+
+Live URL serves the UI directly. API docs at `/docs`.
+
 ## API Endpoints
 
-### Health Check
+### Frontend
 ```
-GET /
-GET /health
+GET /          → Serves index.html (web UI)
 ```
 
-### Document Upload
+### Health
+```
+GET /health    → Service health + active session count
+```
+
+### Documents
 ```
 POST /upload
 Content-Type: multipart/form-data
-
 files: (up to 5 files: PDF, DOCX, TXT)
 ```
 
-**Response:**
+Response:
 ```json
 {
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -90,140 +105,121 @@ files: (up to 5 files: PDF, DOCX, TXT)
 ```
 POST /ask
 Content-Type: application/json
+```
 
+```json
 {
   "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "question": "Какова общая сумма контракта?",
+  "question": "Ödəniş şərtləri hansılardır?",
   "top_k": 5,
   "language": "auto"
 }
 ```
 
-**Response:**
+Response:
 ```json
 {
-  "answer": "Общая сумма контракта составляет 1,500,000 USD...",
+  "answer": "Müqavilə üzrə ödəniş 30 gün ərzində həyata keçirilir...",
   "sources": [
     {
       "source_file": "contract.pdf",
-      "chunk_text": "The total contract value...",
+      "chunk_text": "Payment shall be made within 30 days...",
       "relevance_score": 0.92,
       "chunk_index": 12
     }
   ],
   "confidence": 0.85,
   "session_id": "550e8400-...",
-  "question": "Какова общая сумма контракта?"
+  "question": "Ödəniş şərtləri hansılardır?"
 }
 ```
 
-### Session Management
+### Sessions
 ```
-GET /session/{session_id}    # Get session status
-DELETE /session/{session_id} # Delete session
-GET /sessions                # List all sessions
+GET    /session/{session_id}   # Status of a session
+DELETE /session/{session_id}   # Delete session and its vectors
+GET    /sessions               # List all active sessions
 ```
 
 ### Example Questions
 ```
-GET /examples?language=az  # Get example questions in Azerbaijani (default)
-GET /examples?language=ru  # Get example questions in Russian
-GET /examples?language=en  # Get example questions in English
+GET /examples?language=az   # Azerbaijani (default)
+GET /examples?language=ru   # Russian
+GET /examples?language=en   # English
 ```
 
 ## Question Categories
 
-### 1. Ümumi məlumat / Общая информация / General Information
-- Müqavilənin statusu nədir? / Какой статус контракта?
-- Müqavilə nə vaxt imzalanıb? / Когда контракт был подписан?
-- Müqavilə nə vaxt bitir? / Когда контракт истекает?
-- Müqavilə üzrə təchizatçı kimdir? / Кто является поставщиком?
-- Müqavilənin ümumi məbləği nə qədərdir? / Какова общая сумма контракта?
+The RAG engine classifies questions into categories for better retrieval:
 
-### 2. Maliyyə şərtləri / Финансовые условия / Financial Terms
-- Müqavilənin ümumi dəyəri nə qədərdir? / Какова общая стоимость контракта?
-- Maddələr üzrə hansı qiymətlər razılaşdırılıb? / Какие цены согласованы по позициям?
-- Qiymət indeksasiyası varmı? / Есть ли индексация цен?
-- Ödəniş şərtləri hansılardır? / Какие условия оплаты?
-- Ödənişin gecikdirilməsinə görə cərimə varmı? / Есть ли штрафы за задержку оплаты?
-
-### 3. Müddətlər və öhdəliklər / Сроки и обязательства / Deadlines & Obligations
-- Müqavilə nə vaxt bitir? / Когда истекает контракт?
-- Milestone və ya çatdırılma mərhələləri varmı? / Есть ли milestone или этапы поставки?
-- Hansı çatdırılma müddətləri göstərilib? / Какие сроки поставки указаны?
-- SLA varmı? / Есть ли SLA?
-
-### 4. Risklər və cərimələr / Риски и штрафы / Risks & Penalties
-- Hansı cərimələr nəzərdə tutulub? / Какие штрафы предусмотрены?
-- Penalty clauses varmı? / Есть ли penalty clauses?
-- Müqavilənin ləğvi şərtləri hansılardır? / Какие условия расторжения контракта?
-
-### 5. Təchizat həcmi / Объем поставки / Delivery Scope
-- Müqaviləyə hansı mal və ya xidmətlər daxildir? / Какие товары или услуги входят в контракт?
-- Hansı miqdar razılaşdırılıb? / Какое количество согласовано?
-- Minimum/maksimum həcm varmı? / Есть ли минимальный/максимальный объем?
-
-### 6. Müqavilə dəyişiklikləri / Изменения контракта / Amendments
-- Müqaviləyə əlavələr olubmu? / Были ли amendments к контракту?
-- Son əlavədə nə dəyişdirilib? / Что было изменено в последнем amendment?
-- Müqavilənin hansı versiyaları mövcuddur? / Какие версии контракта существуют?
+| Category | Examples |
+|----------|---------|
+| **General Info** | Contract status, parties, signing date, currency |
+| **Financial Terms** | Total value, prices, payment terms, late payment penalties |
+| **Deadlines & Obligations** | Expiry date, milestones, delivery schedule, SLA |
+| **Risks & Penalties** | Penalty clauses, warranty obligations, termination conditions |
+| **Delivery Scope** | Goods/services included, quantities, min/max volumes |
+| **Amendments** | Amendment history, last change date, contract versions |
 
 ## Architecture
 
 ```
-contract_rag_api/
+Contracts-RAG/
 ├── app/
-│   ├── __init__.py          # Package init
-│   ├── main.py               # FastAPI application
-│   ├── config.py             # Configuration settings
-│   ├── models.py             # Pydantic models
-│   ├── document_processor.py # Text extraction & chunking
-│   ├── embedding_service.py  # Embedding generation
-│   ├── vector_store.py       # FAISS vector storage
-│   └── rag_engine.py         # RAG question answering
-├── tests/
-│   └── test_api.py           # API tests
+│   ├── main.py               # FastAPI app — serves frontend + all API endpoints
+│   ├── config.py             # Settings (env vars via pydantic-settings)
+│   ├── models.py             # Pydantic request/response models
+│   ├── document_processor.py # PDF/DOCX/TXT extraction and chunking
+│   ├── embedding_service.py  # Embeddings: OpenRouter / OpenAI / sentence-transformers
+│   ├── vector_store.py       # FAISS in-memory vector store (per session)
+│   ├── rag_engine.py         # Retrieval + LLM answer generation
+│   └── __init__.py
+├── index.html                # Frontend (served by FastAPI at /)
 ├── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
-├── .env.example
 └── README.md
 ```
 
-## Configuration Options
+### Key design decisions
+
+- **Singleton services**: `EmbeddingService`, `VectorStore`, and `RAGEngine` are created once at startup (via `app.state`) and shared across all requests. This ensures uploaded vectors persist for the lifetime of the process.
+- **In-memory sessions**: Session data lives in a Python dict. Restarting the container clears all sessions — users must re-upload.
+- **Same-origin frontend**: `index.html` is served by FastAPI itself, so the frontend calls relative API paths and works on any deployment URL without hardcoded hostnames.
+
+## Configuration Reference
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DEFAULT_LANGUAGE` | az | Default language (az/ru/en) |
-| `MAX_FILES` | 5 | Maximum files per upload |
-| `CHUNK_SIZE` | 1000 | Characters per chunk |
-| `CHUNK_OVERLAP` | 200 | Overlap between chunks |
-| `EMBEDDING_MODEL` | paraphrase-multilingual-MiniLM-L12-v2 | Embedding model |
-| `LLM_PROVIDER` | openai | LLM provider (openai/anthropic) |
-| `LLM_MODEL` | gpt-4o-mini | LLM model name |
-| `DEFAULT_TOP_K` | 5 | Default chunks to retrieve |
+| `EMBEDDING_PROVIDER` | `openrouter` | `openrouter` or `sentence-transformers` |
+| `EMBEDDING_MODEL` | `qwen/qwen3-embedding-8b` | Model for embeddings |
+| `EMBEDDING_DIMENSION` | `4096` | Vector dimension (4096 for Qwen3-8b, 384 for MiniLM) |
+| `OPENROUTER_EMBEDDINGS_API_KEY` | — | OpenRouter key for embeddings |
+| `OPENROUTER_API_KEY` | — | OpenRouter key for LLM |
+| `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | OpenRouter model identifier |
+| `MAX_FILES` | `5` | Max files per upload |
+| `CHUNK_SIZE` | `1000` | Characters per chunk |
+| `CHUNK_OVERLAP` | `200` | Overlap between chunks |
+| `SIMILARITY_THRESHOLD` | `0.3` | Minimum score to include a chunk in results |
+| `DEFAULT_TOP_K` | `5` | Chunks to retrieve per query |
 
-## Embedding Models
+## Alternative Embedding Models
 
-For multilingual (Azerbaijani + Russian + English) support:
-- `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (recommended, default)
-- `sentence-transformers/paraphrase-multilingual-mpnet-base-v2` (higher quality)
-
-For English only:
-- `sentence-transformers/all-MiniLM-L6-v2` (fast)
-- `sentence-transformers/all-mpnet-base-v2` (high quality)
+| Provider | Model | Dimension | Notes |
+|----------|-------|-----------|-------|
+| OpenRouter | `qwen/qwen3-embedding-8b` | 4096 | Default, strong multilingual |
+| Local | `paraphrase-multilingual-MiniLM-L12-v2` | 384 | No API key needed |
+| Local | `paraphrase-multilingual-mpnet-base-v2` | 768 | Higher quality local option |
 
 ## Development
 
-### Running Tests
 ```bash
+# API docs (Swagger UI)
+open http://localhost:8000/docs
+
+# Run tests
 pytest tests/ -v
 ```
-
-### API Documentation
-After starting the server, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
 
 ## License
 

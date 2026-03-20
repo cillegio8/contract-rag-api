@@ -30,10 +30,9 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 200  # characters
     
     # Embedding Settings
-    EMBEDDING_PROVIDER: str = "openrouter"  # "openai", "openrouter", or "sentence-transformers"
+    EMBEDDING_PROVIDER: str = "openrouter"  # "openrouter" or "sentence-transformers"
     EMBEDDING_MODEL: str = "qwen/qwen3-embedding-8b"  # OpenRouter Qwen embedding model
-    EMBEDDING_DIMENSION: int = 4096  # 4096 for qwen3-embedding-8b, 1536 for text-embedding-3-small, 384 for MiniLM-L12-v2
-    OPENAI_EMBEDDINGS_API_KEY: str = ""  # Set if different from LLM_API_KEY (for OpenAI provider)
+    EMBEDDING_DIMENSION: int = 4096  # 4096 for qwen3-embedding-8b, 384 for MiniLM-L12-v2
     OPENROUTER_EMBEDDINGS_API_KEY: str = ""  # OpenRouter API key for embeddings (can be same as OPENROUTER_API_KEY)
     
     # Vector Store Settings
@@ -46,16 +45,9 @@ class Settings(BaseSettings):
     MAX_QUESTION_LENGTH: int = 1000
     
     # LLM Settings (for answer generation)
-    LLM_PROVIDER: str = "openrouter"  # "openai", "anthropic", "openrouter", "local"
-    LLM_MODEL: str = "gpt-4o-mini"
-    LLM_API_KEY: str = ""
     LLM_MAX_TOKENS: int = 1000
     LLM_TEMPERATURE: float = 0.1
-    
-    # Alternative: Anthropic
-    ANTHROPIC_API_KEY: str = ""
-    ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
-    
+
     # OpenRouter Configuration
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "openai/gpt-4o-mini"  # OpenRouter model identifier

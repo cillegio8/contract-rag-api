@@ -167,41 +167,19 @@ ANSWER:"""
         self._llm_client = None
     
     def _init_llm(self):
-        """Initialize LLM client based on settings."""
+        """Initialize OpenRouter LLM client."""
         if self._llm_client is not None:
             return
-        
-        if settings.LLM_PROVIDER == "openai":
-            try:
-                from openai import OpenAI
-                self._llm_client = OpenAI(api_key=settings.LLM_API_KEY)
-                print(f"✅ Initialized OpenAI LLM: {settings.LLM_MODEL}")
-            except Exception as e:
-                print(f"⚠️ Failed to initialize OpenAI: {e}")
-                self._llm_client = "mock"
-        
-        elif settings.LLM_PROVIDER == "anthropic":
-            try:
-                from anthropic import Anthropic
-                self._llm_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-                print(f"✅ Initialized Anthropic LLM: {settings.ANTHROPIC_MODEL}")
-            except Exception as e:
-                print(f"⚠️ Failed to initialize Anthropic: {e}")
-                self._llm_client = "mock"
-        
-        elif settings.LLM_PROVIDER == "openrouter":
-            try:
-                from openai import OpenAI
-                self._llm_client = OpenAI(
-                    api_key=settings.OPENROUTER_API_KEY,
-                    base_url="https://openrouter.ai/api/v1",
-                )
-                print(f"✅ Initialized OpenRouter LLM: {settings.OPENROUTER_MODEL}")
-            except Exception as e:
-                print(f"⚠️ Failed to initialize OpenRouter: {e}")
-                self._llm_client = "mock"
-        
-        else:
+
+        try:
+            from openai import OpenAI
+            self._llm_client = OpenAI(
+                api_key=settings.OPENROUTER_API_KEY,
+                base_url="https://openrouter.ai/api/v1",
+            )
+            print(f"✅ Initialized OpenRouter LLM: {settings.OPENROUTER_MODEL}")
+        except Exception as e:
+            print(f"⚠️ Failed to initialize OpenRouter LLM: {e}")
             self._llm_client = "mock"
     
     def classify_question(self, question: str, language: str = "auto") -> Tuple[str, str]:
@@ -371,40 +349,17 @@ ANSWER:"""
             return self._mock_answer(question, context, language)
         
         try:
-            if settings.LLM_PROVIDER == "openai":
-                response = self._llm_client.chat.completions.create(
-                    model=settings.LLM_MODEL,
-                    messages=[
-                        {"role": "system", "content": "You are a contract analysis expert. You can respond in Azerbaijani, Russian, and English."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    max_tokens=settings.LLM_MAX_TOKENS,
-                    temperature=settings.LLM_TEMPERATURE,
-                )
-                return response.choices[0].message.content.strip()
-            
-            elif settings.LLM_PROVIDER == "anthropic":
-                response = self._llm_client.messages.create(
-                    model=settings.ANTHROPIC_MODEL,
-                    max_tokens=settings.LLM_MAX_TOKENS,
-                    messages=[
-                        {"role": "user", "content": prompt},
-                    ],
-                )
-                return response.content[0].text.strip()
-            
-            elif settings.LLM_PROVIDER == "openrouter":
-                response = self._llm_client.chat.completions.create(
-                    model=settings.OPENROUTER_MODEL,
-                    messages=[
-                        {"role": "system", "content": "You are a contract analysis expert. You can respond in Azerbaijani, Russian, and English."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    max_tokens=settings.LLM_MAX_TOKENS,
-                    temperature=settings.LLM_TEMPERATURE,
-                )
-                return response.choices[0].message.content.strip()
-        
+            response = self._llm_client.chat.completions.create(
+                model=settings.OPENROUTER_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are a contract analysis expert. You can respond in Azerbaijani, Russian, and English."},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=settings.LLM_MAX_TOKENS,
+                temperature=settings.LLM_TEMPERATURE,
+            )
+            return response.choices[0].message.content.strip()
+
         except Exception as e:
             print(f"LLM generation error: {e}")
             return self._mock_answer(question, context, language)
