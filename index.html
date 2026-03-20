@@ -106,7 +106,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 2rem;
-            min-height: calc(100vh - 250px);
+            align-items: start;
         }
 
         @media (max-width: 900px) {
@@ -278,7 +278,6 @@
         .question-section {
             display: flex;
             flex-direction: column;
-            height: 100%;
         }
 
         .input-group {
@@ -340,7 +339,7 @@
 
         /* Example Questions */
         .examples-section {
-            margin-top: auto;
+            margin-top: 1rem;
             padding-top: 1rem;
             border-top: 1px solid var(--border);
         }
