@@ -83,10 +83,16 @@ FRONTEND_DIR = Path(__file__).parent.parent
 @app.get("/", include_in_schema=False)
 async def serve_frontend():
     """Serve the frontend HTML."""
-    index_path = FRONTEND_DIR / "index.html"
-    if index_path.exists():
-        return FileResponse(index_path)
-    return {"message": "Contract RAG API is running", "docs": "/docs"}
+    candidates = [
+        FRONTEND_DIR / "index.html",
+        Path.cwd() / "index.html",
+        Path("/app/index.html"),
+    ]
+    for index_path in candidates:
+        if index_path.exists():
+            return FileResponse(index_path)
+    checked = [str(p) for p in candidates]
+    return {"message": "index.html not found", "checked_paths": checked}
 
 
 # Dependency injection
