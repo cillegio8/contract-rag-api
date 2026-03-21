@@ -228,6 +228,13 @@ async def upload_documents(
             
             all_chunks.extend(chunks)
             
+        except ValueError as e:
+            session.status = "error"
+            session.error_message = f"Failed to process {file_data['filename']}: {str(e)}"
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{file_data['filename']}' faylı oxuna bilmədi: {str(e)}"
+            )
         except Exception as e:
             session.status = "error"
             session.error_message = f"Failed to process {file_data['filename']}: {str(e)}"

@@ -790,7 +790,14 @@
                     body: formData
                 });
 
-                if (!res.ok) throw new Error('Upload failed');
+                if (!res.ok) {
+                    let errMsg = `Server xətası: ${res.status}`;
+                    try {
+                        const errData = await res.json();
+                        if (errData.detail) errMsg = errData.detail;
+                    } catch (_) {}
+                    throw new Error(errMsg);
+                }
 
                 const data = await res.json();
                 sessionId = data.session_id;
@@ -883,7 +890,14 @@
                     })
                 });
 
-                if (!res.ok) throw new Error('Question failed');
+                if (!res.ok) {
+                    let errMsg = `Server xətası: ${res.status}`;
+                    try {
+                        const errData = await res.json();
+                        if (errData.detail) errMsg = errData.detail;
+                    } catch (_) {}
+                    throw new Error(errMsg);
+                }
 
                 const data = await res.json();
                 renderAnswer(data);
